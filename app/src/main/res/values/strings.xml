@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Android ADK demo</string>
+    <string name="flash_sketch">Flash Arduino sketch</string>
+</resources>

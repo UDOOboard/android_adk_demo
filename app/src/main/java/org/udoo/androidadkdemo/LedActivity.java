@@ -1,8 +1,10 @@
 package org.udoo.androidadkdemo;
 
 import android.app.AlertDialog;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.res.AssetManager;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
@@ -26,6 +28,9 @@ import java.io.OutputStream;
 public class LedActivity extends AppCompatActivity {
 
     private AdkManager mAdkManager;
+    private UsbManager usbManager;
+
+    private static final String ACTION_USB_PERMISSION = "org.udoo.androidadkdemo.action.USB_PERMISSION";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +38,9 @@ public class LedActivity extends AppCompatActivity {
         setContentView(R.layout.activity_led);
         copyAssets();
 
-        mAdkManager = new AdkManager((UsbManager) getSystemService(Context.USB_SERVICE));
+        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        mAdkManager = new AdkManager(usbManager);
+
         registerReceiver(mAdkManager.getUsbReceiver(), mAdkManager.getDetachedFilter());
         Log.i("AdkManager", "available: " + mAdkManager.serialAvailable());
         checkAccessory();
@@ -53,12 +60,11 @@ public class LedActivity extends AppCompatActivity {
     }
 
     private boolean checkAccessory() {
-        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         UsbAccessory[] accessories = usbManager.getAccessoryList();
         if (accessories == null) {
             new AlertDialog.Builder(this)
                 .setTitle("ADK Manager")
-                .setMessage("No accessory connected! Enable ADK communication in Settings -> UDOO.")
+                .setMessage("No accessory connected! Enable ADK communication (in Settings -> UDOO) or flash the Arduino sketch.")
                 .setNegativeButton("cancel", new DialogInterface.OnClickListener(){
                     @Override
                     public void onClick(DialogInterface d, int arg1) {
@@ -67,7 +73,7 @@ public class LedActivity extends AppCompatActivity {
                 })
                 .show();
 
-            Log.e("ADK", "No accessory connected! Enable ADK communication in Settings -> UDOO.");
+            Log.e("ADK", "No accessory connected! Enable ADK communication (in Settings -> UDOO) or flash the Arduino sketch.");
             return false;
         }
         return true;
@@ -76,7 +82,12 @@ public class LedActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
-        mAdkManager.open();
+        try {
+            mAdkManager.open();
+        } catch (java.lang.SecurityException e) {
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+            usbManager.requestPermission(usbManager.getAccessoryList()[0], pendingIntent);
+        }
     }
 
     @Override

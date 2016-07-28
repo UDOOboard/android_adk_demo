@@ -16,7 +16,6 @@ import android.widget.CompoundButton;
 import android.widget.Switch;
 
 import me.palazzetti.adktoolkit.AdkManager;
-import org.udoo.bossacjni.BossacManager;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -37,7 +36,23 @@ public class LedActivity extends AppCompatActivity {
         mAdkManager = new AdkManager((UsbManager) getSystemService(Context.USB_SERVICE));
         registerReceiver(mAdkManager.getUsbReceiver(), mAdkManager.getDetachedFilter());
         Log.i("AdkManager", "available: " + mAdkManager.serialAvailable());
+        checkAccessory();
 
+        Switch onOffSwitch = (Switch) findViewById(R.id.ledSwitch);
+        onOffSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    // writeSerial() allows you to write a single char or a String object.
+                    mAdkManager.write("1");
+                } else {
+                    mAdkManager.write("0");
+                }
+            }
+        });
+    }
+
+    private boolean checkAccessory() {
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         UsbAccessory[] accessories = usbManager.getAccessoryList();
         if (accessories == null) {
@@ -53,21 +68,9 @@ public class LedActivity extends AppCompatActivity {
                 .show();
 
             Log.e("ADK", "No accessory connected! Enable ADK communication in Settings -> UDOO.");
-            return;
+            return false;
         }
-
-        Switch onOffSwitch = (Switch) findViewById(R.id.ledSwitch);
-        onOffSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    // writeSerial() allows you to write a single char or a String object.
-                    mAdkManager.write("1");
-                } else {
-                    mAdkManager.write("0");
-                }
-            }
-        });
+        return true;
     }
 
     @Override
@@ -100,18 +103,13 @@ public class LedActivity extends AppCompatActivity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.flashSketch:
-                flashSketch();
+                File sketch = new File(getExternalFilesDir(null), "UDOOArduinoADKDemoV2.bin");
+                Log.w("TAG", sketch.getAbsolutePath());
+                new FlashSketchTask(LedActivity.this).execute(sketch.getAbsolutePath());
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    private void flashSketch() {
-        BossacManager dd = new BossacManager();
-        File sketch = new File(getExternalFilesDir(null), "UDOOArduinoADKDemoV2.bin");
-        Log.w("TAG", sketch.getAbsolutePath());
-        dd.BossacWriteImage(sketch.getAbsolutePath(), true);
     }
 
     private void copyAssets() {
@@ -138,14 +136,12 @@ public class LedActivity extends AppCompatActivity {
                 try {
                     in.close();
                 } catch (IOException e) {
-                    // NOOP
                 }
             }
             if (out != null) {
                 try {
                     out.close();
                 } catch (IOException e) {
-                    // NOOP
                 }
             }
         }

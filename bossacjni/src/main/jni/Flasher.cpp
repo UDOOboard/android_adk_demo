@@ -53,8 +53,20 @@ void
 Flasher::erase()
 {
 	printf("Erase flash\n");
-    _flash->eraseAll();
-    _flash->eraseAuto(false);
+
+    FILE *udoo_ard;
+    udoo_ard = fopen("/dev/udoo_ard", "ab");
+    if (udoo_ard == NULL) {
+        printf("Cannot call erase/reset on Arduno.");
+        return false;
+    }
+    const char* erase = "erase";
+    fputs(erase, udoo_ard);
+    usleep(1000);
+    fclose(udoo_ard);
+    usleep(1000);
+    
+    printf("Flash erased\n");
 }
 
 void

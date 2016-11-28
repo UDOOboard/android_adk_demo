@@ -153,18 +153,8 @@ WriteImage(const char* samImage, bool verify)
             res = samba.connect(portFactory.create(config.portArg));
             if (!res)
             {
-                FILE *udoo_ard;
-                udoo_ard = fopen("/dev/udoo_ard", "ab");
-                if (udoo_ard == NULL) {
-                    printf("Cannot call erase/reset on Arduno.");
-                    return (eUnhandledException);
-                }
-                const char* erase = "erase";
-                fputs(erase, udoo_ard);
-                fclose(udoo_ard);
-
-            	printf("(!) No device found on %s\n", config.portArg.c_str());
-            	return(eNoTTyDeviceFound);
+                printf("(!) No device found on %s\n", config.portArg.c_str());
+                return(eNoTTyDeviceFound);
             }
         }
 
